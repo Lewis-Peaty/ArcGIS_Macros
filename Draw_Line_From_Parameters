@@ -1,71 +1,92 @@
-'source:
-'http://gis.stackexchange.com/questions/2641/script-for-automated-line-drawing-procedure-for-set-of-start-and-end-points
 
-Public Sub CreateLine(From_X As Double, From_Y As Double, To_X As Double, To_Y As Double)
+Sub GetTables()
+Dim pDoc As IMxDocument
+Set pDoc = ThisDocument
+'Get the tables in the first data frame
+Dim pTc As ITableCollection
+Set pTc = pDoc.FocusMap
+Dim pTable As ITable
+Dim From_X As Double, From_Y As Double, To_X As Double, To_Y As Double, Min_Clearance As Double
+Dim Span_Key As String
 
+'Line drawing stuff
+Dim pUID As New UID
+Dim pEditor As IEditor
+Dim pEditLayers As IEditLayers
+Dim pActiveView As IActiveView
+Dim pNewFeature As IFeature
+Dim pPolyline As IPolyline5
+Dim pFromPoint As IPoint
+Dim pToPoint As IPoint
+Dim TargetFeatureClass As IFeatureClass
 
-    Dim pUID As New UID
-    Dim pEditor As IEditor
-    Dim pEditLayers As IEditLayers
-    Dim pActiveView As IActiveView
-    Dim pNewFeature As IFeature
+pUID = "esriCore.Editor"
+Set pEditor = Application.FindExtensionByCLSID(pUID)
+Set pEditLayers = pEditor 'QI
+Set pActiveView = pEditor.Map
 
-    Dim pPolyline As IPolyline5
-    Dim pFromPoint As IPoint
-    Dim pToPoint As IPoint
-    Dim TargetFeatureClass As IFeatureClass
+If pEditor.EditState = esriStateNotEditing Then
+    MsgBox "You must be editing to use this feature!"
+    Exit Sub
+End If
 
+If Not pEditLayers.CurrentLayer.FeatureClass.ShapeType = esriGeometryPolyline Then
+    MsgBox "Target layer must be a polyline type!"
+    Exit Sub
+Else
+    Set TargetFeatureClass = pEditLayers.CurrentLayer.FeatureClass
+End If
 
-    pUID = "esriCore.Editor"
-    Set pEditor = Application.FindExtensionByCLSID(pUID)
-    Set pEditLayers = pEditor 'QI
-    Set pActiveView = pEditor.Map
-
-    If pEditor.EditState = esriStateNotEditing Then
-        MsgBox "You must be editing to use this feature!"
-        Exit Sub
-    End If
-
-    If Not pEditLayers.CurrentLayer.featureClass.ShapeType = esriGeometryPolyline Then
-        MsgBox "Target layer must be a polyline type!"
-        Exit Sub
-    Else
-        Set TargetFeatureClass = pEditLayers.CurrentLayer.featureClass
-    End If
-
-    pEditor.StartOperation
-
-    Set pFromPoint = New Point
-    Set pToPoint = New Point
-    Set pPolyline = New polyline
-
-    pFromPoint.X = From_X
-    pFromPoint.Y = From_Y
-    pPolyline.FromPoint = pFromPoint
-
-    pToPoint.X = To_X
-    pToPoint.Y = To_Y
-    pPolyline.ToPoint = pToPoint
-
-    Set pNewFeature = pEditLayers.CurrentLayer.featureClass.CreateFeature
-    Set pNewFeature.Shape = pPolyline
-
-    pEditor.StopOperation "Create Polyline"
-
-    pActiveView.Refresh
-
-End Sub
-
-
-Public Sub PassLineParameters()
-    Dim From_X As Double, From_Y As Double, To_X As Double, To_Y As Double
-
-    'collect coordinates
-    From_X = InputBox("Enter From 'X' Coordinate:", "From X")
-    From_Y = InputBox("Enter From 'Y' Coordinate:", "From Y")
-    To_X = InputBox("Enter To 'X' Coordinate:", "To X")
-    To_Y = InputBox("Enter To 'Y' Coordinate:", "To Y")
-
-    CreateLine From_X, From_Y, To_X, To_Y 'call procedure to create line
-
+'Loop through the tables
+Dim pDs As IDataset
+For i = 0 To pTc.TableCount - 1
+    Set pTable = pTc.Table(i)
+ 
+    'Loop through the rows
+    Dim cursor As ICursor
+    Set cursor = pTable.Search(Nothing, False)
+    Dim row As IRow
+    Set row = cursor.NextRow
+    Do While Not row Is Nothing
+    
+        ' do something
+        From_X = CDbl(row.Value(row.Fields.FindField("Start_Long")))
+        From_Y = CDbl(row.Value(row.Fields.FindField("Start_Lat")))
+        To_X = CDbl(row.Value(row.Fields.FindField("End_Long")))
+        To_Y = CDbl(row.Value(row.Fields.FindField("End_Lat")))
+        Min_Clearance = CDbl(row.Value(row.Fields.FindField("MinOfEntire span 3D Clearance (m)")))
+        Span_Key = row.Value(row.Fields.FindField("Span_key"))
+        
+        pEditor.StopOperation "Create Polyline" 'In case previously started and not stopped
+        pEditor.StartOperation
+    
+        Set pFromPoint = New Point
+        Set pToPoint = New Point
+        Set pPolyline = New Polyline
+    
+        pFromPoint.X = From_X
+        pFromPoint.Y = From_Y
+        pPolyline.FromPoint = pFromPoint
+    
+        pToPoint.X = To_X
+        pToPoint.Y = To_Y
+        pPolyline.ToPoint = pToPoint
+    
+        Set pNewFeature = pEditLayers.CurrentLayer.FeatureClass.CreateFeature
+        Set pNewFeature.Shape = pPolyline
+        pNewFeature.Value(pNewFeature.Fields.FindField("MinClearan")) = Min_Clearance
+        pNewFeature.Value(pNewFeature.Fields.FindField("Span_Key")) = Span_Key
+        
+        pNewFeature.Store
+    
+        pEditor.StopOperation "Create Polyline"
+        
+        Set row = cursor.NextRow
+        Debug.Print Span_Key
+    Loop
+    
+    'Get the table's name
+    Set pDs = pTable
+    Debug.Print pDs.Name
+Next i
 End Sub
