@@ -1,0 +1,29 @@
+Sub GetTables()
+Dim pDoc As IMxDocument
+Set pDoc = ThisDocument
+'Get the tables in the first data frame
+Dim pTc As ITableCollection
+Set pTc = pDoc.FocusMap
+Dim pTable As ITable
+
+'Loop through the tables
+Dim pDs As IDataset
+For i = 0 To pTc.TableCount - 1
+    Set pTable = pTc.Table(i)
+ 
+    'Loop through the rows
+    Dim cursor As ICursor
+    Set cursor = pTable.Search(Nothing, False)
+    Dim row As IRow
+    Set row = cursor.NextRow
+    Do While Not row Is Nothing
+        ' do something
+        Debug.Print row.Value(2)
+        Set row = cursor.NextRow
+    Loop
+    
+    'Get the table's name
+    Set pDs = pTable
+    Debug.Print pDs.Name
+Next i
+End Sub
