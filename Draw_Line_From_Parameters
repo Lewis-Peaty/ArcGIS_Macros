@@ -52,8 +52,6 @@ Public Sub CreateLine(From_X As Double, From_Y As Double, To_X As Double, To_Y A
 
     pEditor.StopOperation "Create Polyline"
 
-    createl
-
     pActiveView.Refresh
 
 End Sub
