@@ -1,0 +1,54 @@
+'Source:
+'http://forums.esri.com/Thread.asp?c=93&f=1154&t=284733
+
+Private Function FindLayer1(strBrowseName As String) _
+As ILayer
+    ' Find the matching layer in the focus map.
+    ' Return NOTHING if not found.
+    Dim lngIndex As Long
+    Dim pMxDocument As IMxDocument
+    Dim pMap As IMap
+    Dim pDataset As IDataset
+    Set FindLayer1 = Nothing
+    Set pMxDocument = Application.Document
+    Set pMap = pMxDocument.FocusMap
+    ' Loop through layers and search
+    ' for the matching name.
+    For lngIndex = 0 To (pMap.LayerCount - 1)
+        If TypeOf pMap.Layer(lngIndex) Is FeatureLayer Then
+            Set pDataset = pMap.Layer(lngIndex)
+            If pDataset.BrowseName = strBrowseName Then
+                Set FindLayer1 = pMap.Layer(lngIndex)
+                Exit For
+            End If
+        End If
+    Next lngIndex
+End Function
+
+Sub CreateLayerFromSel()
+
+Dim pMxDoc As IMxDocument
+Dim pFeatLayer As IFeatureLayer
+Dim pNewLayer As IFeatureLayer
+Dim pFeatLayerDef As IFeatureLayerDefinition
+'new
+Dim pMap As IMap
+Dim pActiveView As IActiveView
+
+'Get the current layer
+Set pMxDoc = ThisDocument
+' 0 is the first layer in the Table of Contents
+Set pFeatLayer = FindLayer1("Clearances_Phase2_Lines")
+Set pFeatLayerDef = pFeatLayer
+
+
+'Create the new layer
+Set pNewLayer = pFeatLayerDef.CreateSelectionLayer("QUERY RESULTS", True, "", "")
+
+'new
+Set pMap = pMxDoc.FocusMap
+Set pActiveView = pMxDoc.ActiveView
+    
+pMxDoc.FocusMap.AddLayer pNewLayer
+
+End Sub
