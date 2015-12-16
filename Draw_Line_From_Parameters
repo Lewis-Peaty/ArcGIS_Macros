@@ -1,0 +1,73 @@
+'source:
+'http://gis.stackexchange.com/questions/2641/script-for-automated-line-drawing-procedure-for-set-of-start-and-end-points
+
+Public Sub CreateLine(From_X As Double, From_Y As Double, To_X As Double, To_Y As Double)
+
+
+    Dim pUID As New UID
+    Dim pEditor As IEditor
+    Dim pEditLayers As IEditLayers
+    Dim pActiveView As IActiveView
+    Dim pNewFeature As IFeature
+
+    Dim pPolyline As IPolyline5
+    Dim pFromPoint As IPoint
+    Dim pToPoint As IPoint
+    Dim TargetFeatureClass As IFeatureClass
+
+
+    pUID = "esriCore.Editor"
+    Set pEditor = Application.FindExtensionByCLSID(pUID)
+    Set pEditLayers = pEditor 'QI
+    Set pActiveView = pEditor.Map
+
+    If pEditor.EditState = esriStateNotEditing Then
+        MsgBox "You must be editing to use this feature!"
+        Exit Sub
+    End If
+
+    If Not pEditLayers.CurrentLayer.featureClass.ShapeType = esriGeometryPolyline Then
+        MsgBox "Target layer must be a polyline type!"
+        Exit Sub
+    Else
+        Set TargetFeatureClass = pEditLayers.CurrentLayer.featureClass
+    End If
+
+    pEditor.StartOperation
+
+    Set pFromPoint = New Point
+    Set pToPoint = New Point
+    Set pPolyline = New polyline
+
+    pFromPoint.X = From_X
+    pFromPoint.Y = From_Y
+    pPolyline.FromPoint = pFromPoint
+
+    pToPoint.X = To_X
+    pToPoint.Y = To_Y
+    pPolyline.ToPoint = pToPoint
+
+    Set pNewFeature = pEditLayers.CurrentLayer.featureClass.CreateFeature
+    Set pNewFeature.Shape = pPolyline
+
+    pEditor.StopOperation "Create Polyline"
+
+    createl
+
+    pActiveView.Refresh
+
+End Sub
+
+
+Public Sub PassLineParameters()
+    Dim From_X As Double, From_Y As Double, To_X As Double, To_Y As Double
+
+    'collect coordinates
+    From_X = InputBox("Enter From 'X' Coordinate:", "From X")
+    From_Y = InputBox("Enter From 'Y' Coordinate:", "From Y")
+    To_X = InputBox("Enter To 'X' Coordinate:", "To X")
+    To_Y = InputBox("Enter To 'Y' Coordinate:", "To Y")
+
+    CreateLine From_X, From_Y, To_X, To_Y 'call procedure to create line
+
+End Sub
